@@ -1,8 +1,9 @@
 #In[1]
-#En cada compu antes de ejecutar hay que ejecutar los siguientes comandos:
-#pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org (nombre de la libreria) 
-#EJ: pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org pandas
-# 
+"""
+En cada compu antes de ejecutar hay que ejecutar los siguientes comandos: 
+pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org pandas
+pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org numpy
+""" 
 
 import os
 import shutil
@@ -344,4 +345,107 @@ def show_maps(desired_class, num_maps):
 #In[26]
 show_maps(desired_class=1, num_maps=5)
 #In[27]
-show_maps(desired_class=0, num_maps=5)            
+show_maps(desired_class=0, num_maps=5
+)
+
+#Visualize training process
+#In[28]
+results = pd.DataFrame(r.history)
+results.tail()
+
+#In[29]
+fig = px.line(results,y=[results['accuracy'],results['val_accuracy']],template="seaborn",color_discrete_sequence=['#fad25a','red'])
+fig.update_layout(   
+    title_font_color="#fad25a", 
+    xaxis=dict(color="#fad25a",title='Epochs'), 
+    yaxis=dict(color="#fad25a")
+ )
+fig.show()
+
+#In[30]
+fig = px.line(results,y=[results['loss'],results['val_loss']],template="seaborn",color_discrete_sequence=['#fad25a','red'])
+fig.update_layout(   
+    title_font_color="#fad25a", 
+    xaxis=dict(color="#fad25a",title='Epochs'), 
+    yaxis=dict(color="#fad25a")
+ )
+fig.show()
+
+#In[31]
+train_gen_aug = ImageDataGenerator(
+        rescale=1./255,fill_mode='nearest',horizontal_flip=True,
+        rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+)
+
+
+validation_gen_aug =  ImageDataGenerator(
+        rescale=1./255.)
+
+#In[32]
+train_generator = train_gen_aug.flow_from_directory(
+        '/tmp/cats-v-dogs/training',
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='binary')
+validation_generator = validation_gen_aug.flow_from_directory(
+        '/tmp/cats-v-dogs/validation',
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='binary')
+
+#In[33]
+
+inputs = tf.keras.layers.Input(shape=(150,150,3))
+x =  tf.keras.layers.Conv2D(32, (3,3), activation='relu')(inputs)
+x = tf.keras.layers.Conv2D(64, (3,3), activation='relu')(x)
+x = tf.keras.layers.MaxPooling2D(2,2)(x)
+
+x = tf.keras.layers.Conv2D(64, (3,3), activation='relu')(x)
+x = tf.keras.layers.Conv2D(128, (3,3), activation='relu')(x)
+x = tf.keras.layers.MaxPooling2D(2,2)(x)
+
+x = tf.keras.layers.Conv2D(128, (3,3), activation='relu')(x)
+x = tf.keras.layers.Conv2D(256, (3,3), activation='relu')(x)
+x = tf.keras.layers.MaxPooling2D(2,2)(x)
+
+
+x = tf.keras.layers.Flatten()(x)
+x = tf.keras.layers.Dense(1024, activation='relu')(x) 
+x = tf.keras.layers.Dense(2, activation='softmax')(x) 
+
+model_aug = Model(inputs=inputs, outputs=x)
+
+#In[34]
+model_aug.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=0.001),
+              loss='sparse_categorical_crossentropy',
+              metrics = ['accuracy'])
+
+#In[35]
+r = model_aug.fit(
+        train_generator,
+        epochs=10,#Training longer could yield better results
+        validation_data=validation_generator)
+
+#In[36]
+results = pd.DataFrame(r.history)
+results.tail()
+
+#In[37]
+fig = px.line(results,y=[results['accuracy'],results['val_accuracy']],template="seaborn",color_discrete_sequence=['#fad25a','red'])
+fig.update_layout(   
+    title_font_color="#fad25a", 
+    xaxis=dict(color="#fad25a",title='Epochs'), 
+    yaxis=dict(color="#fad25a")
+ )
+fig.show()
+
+#In[38]
+fig = px.line(results,y=[results['loss'],results['val_loss']],template="seaborn",color_discrete_sequence=['#fad25a','red'])
+fig.update_layout(   
+    title_font_color="#fad25a", 
+    xaxis=dict(color="#fad25a",title='Epochs'), 
+    yaxis=dict(color="#fad25a")
+ )
+fig.show()
